@@ -407,3 +407,25 @@ body.cover main { padding: 0; }
   background: linear-gradient(135deg, #34D399, #0F766E);
   box-shadow: 0 0 0 4px rgba(52, 211, 153, .18), 0 0 12px rgba(52, 211, 153, .55);
 }
+
+/* =========================================================
+   NUBE / SINCRONIZACIÓN
+   ========================================================= */
+.ta {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg-input, #F3F6F5);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 12px; font: inherit; font-size: 13px; color: var(--ink);
+  resize: vertical; margin-bottom: 10px;
+}
+.ta:focus { outline: none; background: #fff; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 118, 110, .12); }
+
+.cloud-on { display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; }
+.cloud-on .s { font-size: 12px; color: var(--ink2); }
+.dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #C2CBC8; }
+.dot.ok { background: linear-gradient(135deg, #34D399, #0F766E); box-shadow: 0 0 0 4px rgba(52, 211, 153, .18); }
+
+.check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); margin: 10px 2px 4px; }
+.check input { width: 18px; height: 18px; accent-color: var(--teal); }
+
+.hint.err { color: #C0392B; }

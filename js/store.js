@@ -39,7 +39,9 @@ window.Store = (function () {
 
   function save() {
     ensureMeta();
+    db.meta.updatedAt = Date.now();
     localStorage.setItem(KEY, JSON.stringify(db));
+    if (window.Cloud && Cloud.notifyChange) Cloud.notifyChange();
   }
 
   function coll(name) { return db[name] || []; }

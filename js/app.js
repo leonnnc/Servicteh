@@ -956,6 +956,8 @@ function vAjustes() {
     field('Tu nombre (técnico)', 'tecnico', m.tecnico, 'text', 'Aparecerá en tareas e informes') +
     field('Símbolo de moneda', 'currency', m.currency, 'text', 'Ej: S/  o  US$') +
     '<button class="btn primary block" type="submit">Guardar</button></form>' +
+    '<div class="card pad"><h2 class="sec">Nube</h2>' +
+    '<div id="cloudBox"><p class="hint">Cargando…</p></div></div>' +
     '<div class="card pad"><h2 class="sec">Respaldo de datos</h2>' +
     '<p class="hint">Tus datos se guardan en este dispositivo/navegador. Descarga un respaldo con frecuencia y guárdalo en la nube o en tu correo.</p>' +
     '<div class="btnrow">' +
@@ -984,6 +986,53 @@ function vAjustes() {
     };
     rd.readAsText(f);
   });
+  if (window.Cloud) {
+    Cloud.onChange(renderCloudBox);
+    renderCloudBox();
+    Cloud.init().then(function () { renderCloudBox(); }).catch(function () {
+      var box = $('#cloudBox');
+      if (box) box.innerHTML = '<p class="hint err">' + esc(Cloud.status().error || 'No se pudo iniciar la nube') + '</p>';
+    });
+  }
+}
+
+function fmtMs(ms) {
+  if (!ms) return '—';
+  var d = new Date(ms);
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function renderCloudBox() {
+  var box = $('#cloudBox');
+  if (!box || !window.Cloud) return;
+  var s = Cloud.status();
+  var h = '';
+  if (!s.configured) {
+    h += '<p class="hint">No hay configuración de Firebase. Pega el bloque <b>firebaseConfig</b> de tu proyecto:</p>' +
+      '<textarea id="clCfg" class="ta" rows="7" placeholder="{ apiKey: ..., projectId: ... }"></textarea>' +
+      '<div class="btnrow"><button class="btn primary sm" data-act="cloud-save-cfg">Guardar configuración</button></div>';
+  } else if (!s.connected) {
+    h += '<p class="hint">Proyecto: <b>' + esc(s.project) + '</b>. Entra con el usuario que creaste en Firebase → Authentication → Users.</p>' +
+      (s.loading ? '<p class="hint">Cargando Firebase…</p>' : '') +
+      '<div class="fld"><label>Correo</label><input id="clEmail" type="email" value="' + esc(s.user || '') + '" placeholder="tu@correo.com"></div>' +
+      '<div class="fld"><label>Contraseña</label><input id="clPass" type="password" placeholder="contraseña de la app"></div>' +
+      '<div class="btnrow"><button class="btn primary sm" data-act="cloud-connect">Conectar</button>' +
+      '<button class="btn ghost sm" data-act="cloud-cfg-edit">Cambiar configuración</button></div>' +
+      '<p class="hint">La sesión queda guardada: solo escribes la contraseña una vez por dispositivo.</p>';
+  } else {
+    h += '<div class="cloud-on"><span class="dot ok"></span><div><b>Conectado</b><div class="s">' + esc(s.user) + '</div></div></div>' +
+      '<p class="hint">Última sincronización: ' + fmtMs(s.lastSync) + (s.pending ? ' · subiendo…' : '') + '</p>' +
+      '<div class="btnrow">' +
+      '<button class="btn secondary sm" data-act="cloud-sync">Sincronizar ahora</button>' +
+      '<button class="btn secondary sm" data-act="cloud-push">Subir ahora</button>' +
+      '<button class="btn ghost sm" data-act="cloud-pull">Bajar ahora</button>' +
+      '</div>' +
+      '<label class="check"><input type="checkbox" id="clAuto"' + (s.auto ? ' checked' : '') + '> Sincronización automática</label>' +
+      '<div class="btnrow"><button class="btn ghost sm" data-act="cloud-logout">Cerrar sesión</button></div>';
+  }
+  if (s.error) h += '<p class="hint err">' + esc(s.error) + '</p>';
+  box.innerHTML = h;
 }
 
 /* =========================================================
@@ -1051,6 +1100,54 @@ document.addEventListener('click', function (e) {
       else window._pads.tec.clear();
     }
   }
+  else if (act === 'cloud-save-cfg') {
+    var ta = $('#clCfg'); if (!ta) return;
+    try {
+      var obj = JSON.parse(ta.value.trim());
+      if (!obj.apiKey || !obj.projectId) throw new Error('faltan datos');
+      Cloud.setConfig(obj); toast('Configuración guardada');
+      Cloud.init().then(function () { renderCloudBox(); }).catch(function () { renderCloudBox(); });
+      renderCloudBox();
+    } catch (e) { toast('Configuración no válida (revisa el bloque firebaseConfig)'); }
+  }
+  else if (act === 'cloud-cfg-edit') {
+    confirmBox('Cambiar configuración', 'Se olvidará la configuración de Firebase guardada en este dispositivo. Tus datos locales no se tocan.', function () {
+      Cloud.clearConfig(); renderCloudBox();
+    }, 'Continuar');
+  }
+  else if (act === 'cloud-connect') {
+    var em = $('#clEmail'), pw = $('#clPass');
+    var email = ((em && em.value) || '').trim();
+    var pass = (pw && pw.value) || '';
+    if (!email || !pass) { toast('Escribe correo y contraseña'); return; }
+    b.disabled = true; b.textContent = 'Conectando…';
+    Cloud.signIn(email, pass).then(function () {
+      toast('Conectado a la nube');
+      renderCloudBox();
+    }).catch(function () {
+      toast(Cloud.status().error || 'No se pudo conectar');
+      renderCloudBox();
+    });
+  }
+  else if (act === 'cloud-logout') {
+    confirmBox('Cerrar sesión en la nube', 'La sincronización se detendrá en este dispositivo. Tus datos locales se mantienen.', function () {
+      Cloud.signOut().then(function () { toast('Sesión cerrada'); renderCloudBox(); });
+    }, 'Cerrar sesión');
+  }
+  else if (act === 'cloud-sync') {
+    Cloud.syncNow().then(function (ok) {
+      toast(ok ? 'Sincronizado' : (Cloud.status().error || 'No se pudo sincronizar'));
+      renderCloudBox();
+    });
+  }
+  else if (act === 'cloud-push') {
+    Cloud.push(false).then(function () { renderCloudBox(); });
+  }
+  else if (act === 'cloud-pull') {
+    confirmBox('Bajar desde la nube', 'Los datos de este dispositivo se reemplazarán por los de la nube.', function () {
+      Cloud.pull(true).then(function () { renderCloudBox(); });
+    }, 'Bajar');
+  }
   else if (act === 'export') {
     var blob = new Blob([Store.exportJSON()], { type: 'application/json' });
     var a = document.createElement('a');
@@ -1092,6 +1189,10 @@ document.addEventListener('change', function (e) {
     toast('Estado: ' + s.value);
     route();
   }
+  else if (s.id === 'clAuto' && window.Cloud) {
+    Cloud.setAuto(s.checked);
+    toast(s.checked ? 'Sincronización automática activada' : 'Sincronización automática desactivada');
+  }
 });
 
 document.addEventListener('submit', function (e) {
@@ -1122,3 +1223,4 @@ document.addEventListener('submit', function (e) {
 Store.load();
 window.addEventListener('hashchange', route);
 route();
+if (window.Cloud && Cloud.configured()) { Cloud.init().catch(function () { }); }

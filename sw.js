@@ -1,9 +1,11 @@
 /* Servitech - service worker (activo solo en https) */
-var CACHE = 'servitech-v1';
+var CACHE = 'servitech-v2';
 var ASSETS = [
   './',
   './index.html',
   './css/app.css',
+  './js/firebase-config.js',
+  './js/cloud.js',
   './js/store.js',
   './js/app.js',
   './assets/manifest.webmanifest',
