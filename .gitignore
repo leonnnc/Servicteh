@@ -6,3 +6,4 @@ server-err.log
 # sistema
 Thumbs.db
 .DS_Store
+system-commandline-sentinel-files/
