@@ -1,0 +1,8 @@
+# capturas y artefactos de prueba
+pruebas/
+*.log
+server-err.log
+
+# sistema
+Thumbs.db
+.DS_Store
