@@ -58,7 +58,7 @@ const firebaseConfig = {
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{uid} {
+    match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
@@ -66,6 +66,8 @@ service cloud.firestore {
 ```
 
 3. Clic en **Publicar**.
+
+> Importante: la app guarda en `users/{uid}/app/main` (una **subcolección**). El comodín `{document=**}` es obligatorio para que la regla alcance también a las subcolecciones; con solo `match /users/{uid}` la app daría "Permiso denegado".
 
 Con esto, **solo tu usuario** puede leer y escribir tus datos; nadie más, aunque conozca el enlace.
 
